@@ -1,0 +1,35 @@
+{
+  "apppointment":{
+    "status_apppointment":true,
+    "appoinments_limit":3,
+    "reminder":{
+      "delay":2,
+      "text":"Hello, this is a notification about you appointment $event_name in $event_date from $event_start_time to $event_end_time. Thanks for choosing our service!",
+      "status":true
+    }
+  },
+  "facebook":{
+    "fb_sdk":"<script>window.fbAsyncInit=function(){FB.init({appId:'809397565909043',autoLogAppEvents:!0,xfbml:!0,version:'v2.11'})},function(e,n,t){var o,s=e.getElementsByTagName(n)[0];e.getElementById(t)||((o=e.createElement(n)).id=t,o.src='https://connect.facebook.net/en_US/sdk.js',s.parentNode.insertBefore(o,s))}(document,'script','facebook-jssdk);</script>",
+    "fb_chat_div":"<div class='fb-customerchat' page_id='$page_id' ref='Hallo' minimized='false'></div>",
+    "websites":""
+  },
+  "q&a":{
+    "limit":5
+  },
+  "localizations":{
+    "de":{
+      "booking_title":"Ihre %s buchung\nam %s",
+      "booking_subtitle":"von %s bis %s\nPrice: %s",
+      "suggestion_title":"Frei Zeitraaum Am %s",
+      "suggestion_subtitle":"von %s bis %s\nBuchen von %s bis %s",
+      "notification_email_title":"MIA notification",
+      "notification_email_text":"Hello,\n\n%s\n\nMIA24 GmbH\nKopernikusstraße 14\n30167 Hannover\nwww.mia24.com",
+      "notification_email_from":"MIA <noreply@mia24.com>",
+      "failed_payment":" Bei dem Bezahlvorgang ist ein Fehler aufgetreten ",
+      "free_slots":"Here are free slots",
+      "free_slots_btn":"Show calendar",
+      "confirm_btn":"Bestätigen",
+      "cancel_btn":"Stornieren"
+    }
+  }
+}

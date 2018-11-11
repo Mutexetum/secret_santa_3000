@@ -1,0 +1,78 @@
+{% extends "bot/base.html" %}
+{% load i18n %}
+
+{% block title %}Statistics{% endblock %}
+{% block content %}
+<div class="row">
+
+            
+  <div class="col-md-12 col-sm-12 col-xs-12">
+             <div class="x_panel">
+               <div class="x_title">
+                 <h2>Send message to participants</h2>
+                 
+                 <div class="clearfix"></div>
+               </div>
+               <div class="x_content">
+
+                   <form class="form-horizontal form-label-left" action="{% url 'send-notification' %}" method="POST">
+                       {% csrf_token %}
+                       
+                      <div class="form-group">
+                        <label class="control-label col-md-2 col-xs-12" >{% trans "Message" %}<span class="required"></span>
+                        </label>
+                        <div class="col-md-10 col-xs-12">
+                            <textarea class="form-control required" rows="3" type="text" id="message" name="message"></textarea>
+                        </div>
+                      </div>
+
+                      <div class="col-md-12 col-sm-12 col-xs-12">
+                        <button type="submit" id ="save" class="btn btn-lg btn-block btn-fb">"Send notification"</button>
+                      </div>
+       
+                     </form>
+
+               </div>
+             </div>
+  </div>
+
+  <div class="col-md-12 col-sm-12 col-xs-12">
+    <div class="x_panel">
+      <div class="x_title">
+        <h2>notification history</h2>
+        <div class="clearfix"></div>
+
+      </div>
+      <div class="x_content">
+        <table id="datatable-buttons" class="table table-striped table-bordered">
+          <thead>
+            <tr>
+              <th>{% trans "ID" %}</th>
+              <th>{% trans "Timestamp" %}</th>
+              <th>{% trans "Message" %}</th>
+
+            </tr>
+          </thead>
+          <tbody>
+            {% for notification in notifications %}
+            <tr>
+              <td>{{ notification.id }}</td>
+              <td>{{ notification.timestamp|default_if_none:"None" }}</td>
+              <td>{{ notification.text|default_if_none:"None" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+          
+</div>
+
+  
+{% endblock %}
+{% block scripts %}
+
+  
+
+{% endblock %}

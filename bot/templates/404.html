@@ -1,0 +1,20 @@
+{% extends "bot/base.html" %}
+{% load i18n %}
+
+{% block title %}Bad request{% endblock %}
+{% block content %}
+<div class="container">
+  <!-- Jumbotron -->
+  <div class="jumbotron">
+    <h1><i class="fa fa-frown-o"></i> 404 error <br>Page not found</h1>
+    <p><a onclick=javascript:checkSite(); class="btn btn-default btn-lg"><span class="green">Take Me To The Homepage</span></a>
+        <script type="text/javascript">
+            function checkSite(){
+              var currentSite = window.location.hostname;
+                window.location = "{% url 'main' %}";
+            }
+        </script>
+    </p>
+  </div>
+</div>
+{% endblock %}
