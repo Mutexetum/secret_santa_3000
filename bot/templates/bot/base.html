@@ -57,16 +57,9 @@
                 <div class="clearfix"></div>
 
                 	<ul class="nav side-menu">
-                  	<li><a><i class="fas fa-edit"></i> {% trans "Profile" %}</a> 
-                  		<ul class="nav child_menu">
-                   		  <li{% if request.path == '/profile' %} class="active"{% endif %}><a href="">{% trans "Profile" %}</a></li>
-                        <li {% if request.path == '/notifications' %} class="active"{% endif %}><a href="">{% trans "Notifications" %}</a></li>
-                        <li{% if request.path == '/appointment' %} class="active"{% endif %}><a href="">{% trans "Calendar settings" %}</a></li>                            
 
-                      </ul>
-                    </li>
-                
-                    <li{% if request.path == '/' %} class="active"{% endif %}><a href="{"><i class="fas fa-calendar"></i> {% trans "Calendar" %}</a></li>                            
+                    <li{% if request.path == '/send-notification' %} class="active"{% endif %}><a href="{% url 'send-notification' %}"><i class="fas fa-edit"></i>Notification</a></li>                            
+                    <li{% if request.path == '/santas' %} class="active"{% endif %}><a href="{% url 'santas' %}"><i class="fas fa-edit"></i>Santas</a></li>                            
 
                   </ul>
                   
@@ -86,9 +79,7 @@
          <div class="top_nav">
             <div class="nav_menu">
               <nav class="" role="navigation">
-                <div class="nav toggle" >
-                  <a id="menu_toggle" style="color: #fff;"><i class="fa fa-bars"></i></a>
-                </div>
+                
   
                 <ul class="nav navbar-nav navbar-right">
                   <li class="">

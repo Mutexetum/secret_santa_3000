@@ -1,5 +1,6 @@
 from .models import User_s_santa, States
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from random import randint
 
 
 def create_user(username, user_id):
@@ -69,13 +70,13 @@ def are_data_collected(user_id):
     return data_collected
 
 
-
 def application_closed():
     states = States.objects.all().first()
     if states is None:
         states = States.objects.create()
 
     return states.application_closed
+
 
 def get_user_data(user_id):
     user = User_s_santa.objects.filter(
@@ -97,3 +98,77 @@ def get_user_data(user_id):
                 user.ready_to_send_to)
     return data
     
+
+def match_users():
+    not_matched_santas = User_s_santa.objects.all().exclude(address__isnull=True).exclude(address="")
+
+    matched_santas = []
+
+    rest_target_count = not_matched_santas.count()
+    first_santa = get_random_santa(not_matched_santas, rest_target_count)
+    santa = first_santa
+    rest_target_count -= 1
+    not_matched_santas = not_matched_santas.exclude(id=santa.id)
+
+    while rest_target_count > 0:
+        target = None
+        if santa.ready_to_send_to == 0:
+            santas_in_ru = not_matched_santas.filter(my_region=0)
+            target = get_random_santa(santas_in_ru, santas_in_ru.count())
+        else:
+            # my be make sense to process in beginning only those santas who deliver in russia
+            target = get_random_santa(not_matched_santas, rest_target_count)
+
+        santa.im_santa_for = target
+        target.my_santa = santa
+        santa.save()
+        target.save()
+
+        matched_santas.append(santa)
+        santa = target
+        rest_target_count -= 1
+        not_matched_santas = not_matched_santas.exclude(id=santa.id)
+
+    santa.im_santa_for = first_santa
+    first_santa.my_santa = santa
+    santa.save()
+    first_santa.save()
+    matched_santas.append(santa)
+
+
+
+    # ready_to_send_to_ru = users.filter(ready_to_send_to=0)
+    # print(ready_to_send_to_ru)
+    # users_in_ru = users.filter(my_region=0)
+    # print(users_in_ru)
+
+    # for user in ready_to_send_to_ru:
+    #     user_ru = get_user_from_list(user, 0)
+    #     if user_ru is not None:
+    #         user_ru.my_santa = user
+    #         user_ru.save()
+
+
+def get_random_santa(santas, count):
+    print(count)
+    random_index = randint(0, count - 1)
+    print(random_index)
+
+    return santas[random_index]
+
+
+
+def get_user_from_list(user, region):
+    result = User_s_santa.objects.filter(my_region=region, my_santa=None)
+    for item in result:
+        if item != user:
+            return item
+    return None
+
+def dismatch():
+    users = User_s_santa.objects.all()
+    for user in users:
+        user.my_santa = None
+        user.im_santa_for = None
+        user.save()
+        

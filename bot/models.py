@@ -28,11 +28,10 @@ class User_s_santa(models.Model):
 
     my_santa = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
     next_step = models.TextField(blank=True, null=True, default='')
-#    im_santa_for = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True)
-
+    im_santa_for = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name="imsantafor")
 
     def __str__(self):
-        return 'user {0}'.format(self.user_id)
+        return 'username {0} id {1}'.format(self.username, self.id)
 
 
 class States(models.Model):
@@ -42,10 +41,10 @@ class States(models.Model):
         return 'states '
 
 
-
 class Notification(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     text = models.TextField(blank=True, null=True, default='')
+    to = models.ForeignKey(User_s_santa, on_delete=models.SET_NULL, blank=True, null=True)
 
     def __str__(self):
         return 'Notification sent to users {0}'.format(self.timestamp)

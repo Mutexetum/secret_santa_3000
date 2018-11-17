@@ -2,11 +2,13 @@
 # Example code for telegrambot.py module
 from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 from telegram.ext import Updater
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, Bot
 from django_telegrambot.apps import DjangoTelegramBot
 #import strings
 import logging
 from .helpers import create_user, get_buttons_for_user, are_data_collected, application_closed, get_user_data
+from django.conf import settings as settings_conf
+from .models import User_s_santa
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,7 @@ RULE1 = "Чтобы всё у нас получилось, ты должен о�
 RULE2 = "Ты расскажешь мне, как тебя зовут, откуда ты и что ты хочешь или не хочешь получить в подарок, а я позабочусь о том, чтобы кто-то получил твой адрес и выдал его твоему Санте. А ты получишь адрес того, кого будешь одаривать ты."
 RULE3 = "Так как это секрет, то только ты и будешь знать, кто твой подопечный. Пожалуйста, сохрани эту информацию для себя! Иначе никакой магии не получится."
 
+FULL_NAME_REQUEST = "Введите свое полное имя. (ФИО)"
 ADDRESS_REQUEST = "Введи свой почтовый адрес включая ФИО. Пожалуйста, введи его в такой форме, как он должен быть написан на посылке/конверте. К сожалению не возможно доставить посылку без ФИО и правильного адреса, поэтому не огорчай своего Санту и сделай всё правильно."
 ABOUT_ME_REQUEST = "Расскажи о себе в двух словах, чтобы у деда был контекст"
 I_DONT_WANT = "Чтобы не было неприятных сюрпризов, поделись, что бы ты не хотел ни в коем случае получить в подарок от своего Санты. Если ты не любишь розовых единорогов, то это самое время об этом написать."
@@ -30,8 +33,29 @@ DATA_CANNOT_BE_EDITED = "Данные уже нельзя изменить"
 ALL_DATA_COLLECTED = "Вы заполнили все данные. Можете поменять или посмотреть свои данные"
 ALL_DATA_COLLECTED_APP_CLOSED = "Вы заполнили все данные. Можете посмотреть свои данные"
 
-# Define a few command handlers. These usually take the two arguments bot and
-# update. Error handlers also receive the raised TelegramError object in error.
+MESSAGE_TO_SANTA = "Введи текст сообщения для санты"
+MESSAGE_TO_VNUK = "Введи текст сообщения для внучка/внучки"
+MESSAGE_FROM_SANTA = "Вам письмо от санты \n"
+MESSAGE_FROM_VNUK = "Вам письмо от внучка/внучки \n"
+
+SANTA_IS_NONE = "Ваш санта еще не выбран"
+VNUK_IS_NONE = "Ваш внук/внучка еще не выбран"
+
+
+FULL_NAME_SAVED = "ФИО {0} успешно сохраненно"
+ADDRESS_SAVED = "Aдрес {0} успешно сохранен"
+ABOUT_ME_SAVED = "Краткая информация: {0} \nУспешно сохраненна"
+I_WANT_SAVED = "Записал что ты хочешь: {0}"
+I_DONNT_WANT_SAVED = "Записал что ты не хочешь: {0}"
+REGION_RU_SAVED = "Хорошо, записал что ты находишься в РФ"
+REGION_NOT_RU_SAVED = "Хорошо, записал что ты находишься не в РФ"
+
+CAN_SEND_TO_RU_SAVED = "Хорошо, записал что ты готов отправить подарок только в РФ"
+CAN_SEND_TO_WW_SAVED = "Хорошо, записал что ты готов отправить подарок по всему миру"
+
+HERE_IS_TARGET = "Дорогой Санта вот твой внучок/внучка\n"
+
+
 def start(bot, update):
     if application_closed():
         update.message.reply_text(APPLICATION_CLOSED)
@@ -50,7 +74,6 @@ def start(bot, update):
         update.message.reply_text(RULE2)
         update.message.reply_text(RULE3)
         
-
         keyboard = main_menu_keyboard(update.effective_user.id)
         update.message.reply_text(main_menu_message(),
                                   reply_markup=keyboard)
@@ -66,6 +89,33 @@ def help(bot, update):
     bot.sendMessage(update.message.chat_id, text='Help!')
 
 
+def write_to_santa(bot, update):
+    query = update.callback_query
+    if update.message is None:
+        bot.sendMessage(query.message.chat_id, text=MESSAGE_TO_SANTA)
+    else:
+        bot.sendMessage(update.message.chat.id, text=MESSAGE_TO_SANTA)
+    user_ss, created = create_user(
+        update.effective_user.username,
+        update.effective_user.id)
+    user_ss.next_step = "write_to_santa"
+    user_ss.save()
+
+
+def write_to_vnuk(bot, update):
+    query = update.callback_query
+    if update.message is None:
+        bot.sendMessage(query.message.chat_id, text=MESSAGE_TO_VNUK)
+    else:
+        bot.sendMessage(update.message.chat.id, text=MESSAGE_TO_VNUK)
+
+    user_ss, created = create_user(
+        update.effective_user.username,
+        update.effective_user.id)
+    user_ss.next_step = "write_to_vnuk"
+    user_ss.save()
+
+
 def input_message(bot, update):
 
     user_ss, created = create_user(
@@ -76,62 +126,76 @@ def input_message(bot, update):
             second_menu(bot, update)
         else:
             main_menu(bot, update)
-
     
     if user_ss.next_step == "add_full_name":
         user_ss.full_name = update.message.text
         user_ss.next_step = None
         user_ss.save()
-        update.message.reply_text(text="ФИО {0} успешно сохраненно".format(update.message.text))   
+        update.message.reply_text(text=FULL_NAME_SAVED.format(update.message.text))   
         if are_data_collected(update.effective_user.id):
             second_menu(bot, update)
         else:
             main_menu(bot, update)
-
 
     elif user_ss.next_step == "add_address":
         user_ss.address = update.message.text
         user_ss.next_step = None
         user_ss.save()
-        update.message.reply_text(text="Aдрес {0} успешно сохранен".format(update.message.text))   
+        update.message.reply_text(text=ADDRESS_SAVED.format(update.message.text))   
         if are_data_collected(update.effective_user.id):
             second_menu(bot, update)
         else:
             main_menu(bot, update)
-
 
     elif user_ss.next_step == "add_about_me":
         user_ss.about_me = update.message.text
         user_ss.next_step = None
         user_ss.save()
-        update.message.reply_text(text="Краткая информация: {0} \nУспешно сохраненна".format(update.message.text))   
+        update.message.reply_text(text=ABOUT_ME_SAVED.format(update.message.text))   
         if are_data_collected(update.effective_user.id):
             second_menu(bot, update)
         else:
             main_menu(bot, update)
-
-
 
     elif user_ss.next_step == "add_i_want":
         user_ss.i_want = update.message.text
         user_ss.next_step = None
         user_ss.save()
-        update.message.reply_text(text="Записал что ты хочешь: {0}".format(update.message.text))   
+        update.message.reply_text(text=I_WANT_SAVED.format(update.message.text))   
         if are_data_collected(update.effective_user.id):
             second_menu(bot, update)
         else:
             main_menu(bot, update)
 
-    
     elif user_ss.next_step == "add_i_donnot_want":
         user_ss.i_donnot_want = update.message.text
         user_ss.next_step = None
         user_ss.save()
-        update.message.reply_text(text="Записал что ты не хочешь: {0}".format(update.message.text))
+        update.message.reply_text(text=I_DONNT_WANT_SAVED.format(update.message.text))
         if are_data_collected(update.effective_user.id):
             second_menu(bot, update)
         else:
             main_menu(bot, update)
+
+    elif user_ss.next_step == "write_to_santa":
+        if user_ss.my_santa is None:
+            update.message.reply_text(text=SANTA_IS_NONE)
+            user_ss.next_step = None
+            user_ss.save()
+            return 0
+        send_message(user_ss.my_santa, MESSAGE_FROM_VNUK + update.message.text)
+        user_ss.next_step = None
+        user_ss.save()
+
+    elif user_ss.next_step == "write_to_vnuk":
+        if user_ss.im_santa_for is None:
+            update.message.reply_text(text=VNUK_IS_NONE)
+            user_ss.next_step = None
+            user_ss.save()
+            return 0
+        send_message(user_ss.im_santa_for, MESSAGE_FROM_SANTA + update.message.text)
+        user_ss.next_step = None
+        user_ss.save()
 
 
 def error(bot, update, error):
@@ -165,7 +229,7 @@ def add_full_name(bot, update):
         bot.sendMessage(query.message.chat_id, text=DATA_CANNOT_BE_EDITED)
         second_menu(bot, update)
         return None
-    bot.sendMessage(query.message.chat_id, text='Введите свое полное имя. (ФИО)')
+    bot.sendMessage(query.message.chat_id, text=FULL_NAME_REQUEST)
     user_ss, created = create_user(
         update.effective_user.username,
         update.effective_user.id)
@@ -253,12 +317,11 @@ def my_region_0(bot, update):
     user_ss.my_region = 0
     user_ss.next_step = None
     user_ss.save()
-    bot.sendMessage(query.message.chat_id, text="Хорошо, записал что ты находишься в РФ")
+    bot.sendMessage(query.message.chat_id, text=REGION_RU_SAVED)
     if are_data_collected(update.effective_user.id):
         second_menu(bot, update)
     else:
         main_menu(bot, update)
-
 
 
 def my_region_1(bot, update):
@@ -273,7 +336,7 @@ def my_region_1(bot, update):
     user_ss.my_region = 1
     user_ss.next_step = None
     user_ss.save()
-    bot.sendMessage(query.message.chat_id, text="Хорошо, записал что ты находишься не в РФ")
+    bot.sendMessage(query.message.chat_id, text=REGION_NOT_RU_SAVED)
     if are_data_collected(update.effective_user.id):
         second_menu(bot, update)
     else:
@@ -307,7 +370,7 @@ def sent_to_region_0(bot, update):
     user_ss.ready_to_send_to = 0
     user_ss.next_step = None
     user_ss.save()
-    bot.sendMessage(query.message.chat_id, text="Хорошо, записал что ты готов отправить подарок только в РФ")
+    bot.sendMessage(query.message.chat_id, text=CAN_SEND_TO_RU_SAVED)
     if are_data_collected(update.effective_user.id):
         second_menu(bot, update)
     else:
@@ -327,7 +390,7 @@ def sent_to_region_1(bot, update):
     user_ss.next_step = None
     user_ss.save()
 
-    bot.sendMessage(query.message.chat_id, text="Хорошо, записал что ты готов отправить подарок по всему миру")
+    bot.sendMessage(query.message.chat_id, text=CAN_SEND_TO_WW_SAVED)
     if are_data_collected(update.effective_user.id):
         second_menu(bot, update)
     else:
@@ -374,10 +437,47 @@ def send_to_region_keyboard():
               ]
     return InlineKeyboardMarkup(keyboard)
 
+def messaging_keyboard():
+    keyboard = [[InlineKeyboardButton('Написать санте', callback_data='write_to_santa')],
+              [InlineKeyboardButton('Написать внучку/внучке', callback_data='write_to_vnuk')],
+              ]
+    return InlineKeyboardMarkup(keyboard)
+
 ############################# Messages #########################################
 def main_menu_message():
     return 'Выберите пункт меню чтобы заполнить данные'
 
+############################# Actions #########################################
+
+
+def send_message(user, message):
+    bot = Bot(settings_conf.TELEGRAM_TOKEN)
+    bot.send_message(
+        chat_id=user.chat_id,
+        text=message,
+         reply_markup=messaging_keyboard()
+        )
+    return 0
+
+
+def send_userinfo_to_santas():
+    users = User_s_santa.objects.all()
+    bot = Bot(settings_conf.TELEGRAM_TOKEN)
+
+    for user in users:
+        if user.my_santa is not None and user.user_id is not None and user.user_id != "":
+            data = get_user_data(user.user_id)
+            message = HERE_IS_TARGET + data
+            try:
+                bot.send_message(
+                    chat_id=user.my_santa.chat_id,
+                    text=message,
+                    reply_markup=messaging_keyboard(),
+                    parse_mode=ParseMode.MARKDOWN)
+            except:
+                pass
+            
+    return 0
 
 
 def main():
@@ -392,6 +492,12 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
+
+    dp.add_handler(CommandHandler("write_to_santa", write_to_santa))
+    dp.add_handler(CommandHandler("write_to_vnuk", write_to_vnuk))
+    dp.add_handler(CallbackQueryHandler(write_to_santa, pattern='write_to_santa'))
+    dp.add_handler(CallbackQueryHandler(write_to_vnuk, pattern='write_to_vnuk'))
+
 
     dp.add_handler(CallbackQueryHandler(main_menu, pattern='main'))
     dp.add_handler(CallbackQueryHandler(show_my_data, pattern='SHOW_MY_DATA'))
